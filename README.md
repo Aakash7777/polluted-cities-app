@@ -21,7 +21,7 @@ A Node.js backend service that integrates data from an external pollution API an
 
 ## Requirements
 
-- Node.js >= 18.0.0
+- Node.js >= 18.0.0 (tested with v20.19.3)
 - npm >= 8.0.0
 
 ## Installation
@@ -364,4 +364,5 @@ The application provides comprehensive monitoring and analytics:
 - **Server-side Pagination**: Accurate pagination with exactly 9 items per page
 - **Improved Error Handling**: Detailed error categorization and logging
 - **Cache Management**: Clear cache endpoint for fresh data fetching
+
 
