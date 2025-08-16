@@ -1,4 +1,4 @@
-# Polluted Cities Backend
+# Polluted Cities App
 
 A Node.js backend service that integrates data from an external pollution API and enriches it with Wikipedia descriptions. The service provides a clean, validated, and enriched dataset of the polluted cities by country.
 
@@ -364,3 +364,4 @@ The application provides comprehensive monitoring and analytics:
 - **Server-side Pagination**: Accurate pagination with exactly 9 items per page
 - **Improved Error Handling**: Detailed error categorization and logging
 - **Cache Management**: Clear cache endpoint for fresh data fetching
+
