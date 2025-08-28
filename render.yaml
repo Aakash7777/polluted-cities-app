@@ -10,5 +10,10 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: NODE_VERSION
+        value: 20.19.3
     healthCheckPath: /health
     autoDeploy: true
+    buildFilter:
+      paths:
+        - polluted-cities-backend/**
