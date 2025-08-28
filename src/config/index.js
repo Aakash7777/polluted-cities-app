@@ -34,7 +34,7 @@ const config = {
     apiKey: process.env.OPENAQ_API_KEY || null, // Optional API key for higher rate limits
     timeout: 15000, // 15 seconds timeout
     retries: 3,
-    enabled: process.env.OPENAQ_ENABLED === 'true' && process.env.OPENAQ_API_KEY // Only enable if explicitly set and API key provided
+    enabled: true // Always enabled, API key is optional
   },
 
   // Wikipedia API configuration
