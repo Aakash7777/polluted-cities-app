@@ -4,7 +4,9 @@ A Node.js backend service that integrates data from an external pollution API an
 
 ## Features
 
-- **Data Integration**: Fetches pollution data from external API with authentication
+- **Real Air Quality Data**: OpenAQ API integration for live air quality data from monitoring stations worldwide
+- **Legacy API Support**: Fallback to mock pollution API when OpenAQ is disabled
+- **Data Integration**: Fetches pollution data from external APIs with authentication
 - **Advanced City Validation**: Google Places API integration for accurate city validation and name correction
 - **Smart Duplicate Removal**: Intelligent deduplication with pollution-based selection
 - **Data Enrichment**: Enriches cities with Wikipedia descriptions using corrected city names
@@ -46,9 +48,18 @@ A Node.js backend service that integrates data from an external pollution API an
    ```env
    PORT=3000
    NODE_ENV=development
+   
+   # Legacy Mock API (fallback)
    POLLUTION_API_BASE_URL=https://be-recruitment-task.onrender.com
    POLLUTION_API_USERNAME=testuser
    POLLUTION_API_PASSWORD=testpass
+   
+   # OpenAQ API (Real Air Quality Data)
+   OPENAQ_API_BASE_URL=https://api.openaq.org
+   OPENAQ_API_KEY=your_openaq_api_key_here
+   OPENAQ_ENABLED=true
+   
+   # Google Places API (for city validation)
    GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
    GOOGLE_PLACES_ENABLED=true
    ```
@@ -218,7 +229,8 @@ public/               # Frontend files
 - **Logger**: Winston-based logging with different formats for dev/prod
 - **Cache Manager**: Multi-layer in-memory caching with TTL for different data types
 - **City Validator**: Google Places API integration for accurate city validation and name correction
-- **Pollution API Service**: Handles external API communication with authentication and retry logic
+- **OpenAQ Service**: Handles real air quality data from OpenAQ API with caching and error handling
+- **Pollution API Service**: Handles external API communication with authentication and retry logic (legacy)
 - **Wikipedia Service**: Manages Wikipedia API integration using corrected city names
 - **Error Handler**: Global error handling middleware with detailed error categorization
 - **Frontend Dashboard**: Beautiful, responsive web interface with interactive features
@@ -232,9 +244,12 @@ public/               # Frontend files
 |----------|-------------|---------|
 | `PORT` | Server port | 3000 |
 | `NODE_ENV` | Environment | development |
-| `POLLUTION_API_BASE_URL` | Pollution API URL | https://be-recruitment-task.onrender.com |
-| `POLLUTION_API_USERNAME` | API username | testuser |
-| `POLLUTION_API_PASSWORD` | API password | testpass |
+| `POLLUTION_API_BASE_URL` | Legacy Pollution API URL | https://be-recruitment-task.onrender.com |
+| `POLLUTION_API_USERNAME` | Legacy API username | testuser |
+| `POLLUTION_API_PASSWORD` | Legacy API password | testpass |
+| `OPENAQ_API_BASE_URL` | OpenAQ API URL | https://api.openaq.org |
+| `OPENAQ_API_KEY` | OpenAQ API key (optional) | null |
+| `OPENAQ_ENABLED` | Enable OpenAQ integration | true |
 | `GOOGLE_PLACES_API_KEY` | Google Places API key | Required for city validation |
 | `GOOGLE_PLACES_ENABLED` | Enable Google Places validation | true |
 | `CACHE_TTL` | Cache TTL in seconds | 3600 |
@@ -243,6 +258,84 @@ public/               # Frontend files
 | `RATE_LIMIT_WINDOW_MS` | Rate limit window | 900000 |
 | `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | 100 |
 | `LOG_LEVEL` | Logging level | info |
+
+## OpenAQ Integration
+
+The backend integrates with the **OpenAQ API** to provide real air quality data from monitoring stations worldwide. OpenAQ is a free, open-source platform that aggregates air quality data from various sources.
+
+### Features
+- **Real-time Data**: Live air quality measurements from actual monitoring stations
+- **Global Coverage**: Data from cities worldwide, including Poland, Germany, Spain, and France
+- **Multiple Parameters**: PM2.5, PM10, and other air quality parameters
+- **Automatic AQI Calculation**: Converts raw measurements to Air Quality Index levels
+- **Intelligent Caching**: Caches data to reduce API calls and improve performance
+- **Fallback Support**: Falls back to legacy mock API if OpenAQ is disabled
+
+### Current Status
+⚠️ **Note**: OpenAQ v3 API currently has limited data for the specific countries (PL, DE, ES, FR) used in this application. The API returns monitoring stations from other regions when queried for these countries.
+
+### Configuration
+```env
+# Enable OpenAQ integration (default: false - requires API key)
+OPENAQ_ENABLED=false
+
+# OpenAQ API base URL (default: https://api.openaq.org)
+OPENAQ_API_BASE_URL=https://api.openaq.org
+
+# Required API key for v3 API access
+OPENAQ_API_KEY=your_openaq_api_key_here
+```
+
+### Testing OpenAQ Integration
+```bash
+# Run the OpenAQ integration test
+node test-openaq.js
+
+# Test direct API calls
+node test-openaq-direct.js
+```
+
+### Data Sources
+- **Primary**: OpenAQ API (real air quality data)
+- **Fallback**: Legacy mock API (when OpenAQ is disabled)
+
+### Fallback Behavior
+When OpenAQ is disabled or unavailable, the application automatically falls back to the legacy mock API to ensure continuous service.
+
+## OpenAQ AWS S3 Integration (Advanced)
+
+For comprehensive historical air quality data, the application supports downloading data from the OpenAQ AWS S3 archive.
+
+### Features
+- **Historical Data**: Download years of air quality measurements
+- **Local Storage**: Store data in SQLite database for fast access
+- **Global Coverage**: Access data from monitoring stations worldwide
+- **Multiple Parameters**: PM2.5, PM10, O3, NO2, SO2, CO measurements
+- **Batch Processing**: Process large datasets efficiently
+
+### Requirements
+- **AWS CLI**: Must be installed and configured (no credentials needed)
+- **Storage Space**: ~1.5MB per location per year
+- **Network**: Internet connection for downloading
+
+### Usage
+```bash
+# Download real air quality data from AWS S3
+node download-openaq-data.js
+
+# Test the AWS S3 integration
+node test-openaq-aws.js
+
+# Manual download example:
+aws s3 cp --no-sign-request --recursive \
+  s3://openaq-data-archive/records/csv.gz/locationid=2178/year=2020/ \
+  data
+```
+
+### Data Sources
+- **Primary**: OpenAQ API (real-time data)
+- **Historical**: OpenAQ AWS S3 Archive (bulk historical data)
+- **Fallback**: Legacy mock API (when other sources unavailable)
 
 ## Production Deployment
 

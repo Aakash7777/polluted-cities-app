@@ -22,8 +22,8 @@ const router = express.Router()
  *   If not provided, defaults to Poland (PL)
  * - page (optional): Page number for pagination (default: 1, min: 1)
  *   Examples: ?page=1 or ?page=2
- * - limit (optional): Number of items per page (ignored, always 9)
- *   Examples: ?limit=10 (will be ignored, returns 9 items)
+ * - limit (optional): Number of items per page (default: 10, min: 1, max: 50)
+ *   Examples: ?limit=10 or ?limit=25
  * 
  * This endpoint:
  * 1. Validates requested country code and pagination parameters

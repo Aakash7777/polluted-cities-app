@@ -16,8 +16,12 @@ const config = require('./config')
 const logger = require('./utils/logger')
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler')
 
+// Import database service
+const databaseService = require('./services/databaseService')
+
 // Import routes
 const citiesRoutes = require('./routes/cities')
+const apiRoutes = require('./routes/api')
 
 // Create Express application
 const app = express()
@@ -99,8 +103,7 @@ app.use(limiter)
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Serve static files from public directory
-app.use(express.static('public'))
+// Static files removed - using separate React frontend
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -129,12 +132,14 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: config.server.nodeEnv,
-    version: '1.0.0'
+    version: '1.0.0',
+    database: databaseService.initialized ? 'connected' : 'disconnected'
   })
 })
 
 // API routes
 app.use('/cities', citiesRoutes)
+app.use('/api', apiRoutes)
 
 // API documentation endpoint
 app.get('/docs', (req, res) => {
@@ -154,7 +159,8 @@ app.get('/docs', (req, res) => {
       'Groups cities by country',
       'Sorts by pollution levels',
       'Implements caching and rate limiting',
-      'Production-ready error handling and logging'
+      'Production-ready error handling and logging',
+      'Database integration for invalid cities tracking'
     ],
     responseFormat: {
       success: 'boolean',
@@ -180,11 +186,13 @@ app.use(errorHandler)
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully')
+  databaseService.close()
   process.exit(0)
 })
 
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully')
+  databaseService.close()
   process.exit(0)
 })
 
@@ -203,26 +211,47 @@ process.on('uncaughtException', (error) => {
     error: error.message,
     stack: error.stack
   })
+  databaseService.close()
   process.exit(1)
 })
 
 // Start server
 const PORT = config.server.port
 
-app.listen(PORT, () => {
-  logger.info('Server started successfully', {
-    port: PORT,
-    environment: config.server.nodeEnv,
-    version: '1.0.0',
-    timestamp: new Date().toISOString()
-  })
-  
-  console.log(`🚀 Polluted Cities Backend Server running on port ${PORT}`)
-  console.log(`📊 Environment: ${config.server.nodeEnv}`)
-  console.log(`🎨 Beautiful Dashboard: http://localhost:${PORT}`)
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`)
-  console.log(`📚 API docs: http://localhost:${PORT}/docs`)
-  console.log(`🌍 Cities endpoint: http://localhost:${PORT}/cities`)
-})
+// Initialize database before starting server
+async function startServer() {
+  try {
+    // Initialize database
+    databaseService.initialize()
+    
+    // Set up periodic database cleanup
+    setInterval(() => {
+      databaseService.cleanupOldHistory()
+    }, config.database.cleanupInterval)
+    
+    // Start the server
+    app.listen(PORT, () => {
+      logger.info('Server started successfully', {
+        port: PORT,
+        environment: config.server.nodeEnv,
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        database: 'initialized'
+      })
+      
+      console.log(`🚀 Polluted Cities Backend Server running on port ${PORT}`)
+      console.log(`📊 Environment: ${config.server.nodeEnv}`)
+      console.log(`🔗 Health check: http://localhost:${PORT}/health`)
+      console.log(`📚 API docs: http://localhost:${PORT}/docs`)
+      console.log(`🌍 Cities endpoint: http://localhost:${PORT}/cities`)
+      console.log(`🗄️ Database: initialized`)
+    })
+  } catch (error) {
+    logger.error('Failed to start server', { error: error.message })
+    process.exit(1)
+  }
+}
+
+startServer()
 
 module.exports = app

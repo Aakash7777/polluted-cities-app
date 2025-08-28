@@ -124,109 +124,20 @@ class CityValidator {
       return { isValid: false, correctedName: null }
     }
 
-    // Use Google Places API for validation with caching
-    try {
-      return await this.validateWithGooglePlaces(trimmedName)
-    } catch (error) {
-      logger.warn('Google Places API validation failed', {
-        cityName: trimmedName,
-        error: error.message
-      })
-      // If API fails, allow the city to pass (fail open)
-      return { isValid: true, correctedName: trimmedName }
-    }
+    // Google Places API is disabled, use basic validation
+    return { isValid: true, correctedName: trimmedName }
   }
 
   /**
    * Validate city name using Google Places API with caching
    * @param {string} cityName - City name to validate
    * @returns {Promise<Object>} Object with validation result and corrected name
+   * @deprecated Google Places API is disabled, using basic validation only
    */
   async validateWithGooglePlaces(cityName) {
-    // Check if Google API key is configured
-    if (!config.googlePlaces?.apiKey) {
-      logger.warn('Google Places API key not configured, skipping API validation')
-      return { isValid: true, correctedName: cityName } // Allow validation to pass if API is not configured
-    }
-
-    // Check cache first
-    const cacheKey = `${this.cacheKey}_${cityName.toLowerCase()}`
-    const cachedResult = cache.get(cacheKey)
-    
-    if (cachedResult !== undefined) {
-      logger.debug('Google Places validation result found in cache', { 
-        cityName, 
-        cachedResult 
-      })
-      return cachedResult
-    }
-
-    // Use Places Autocomplete API for better typo handling and canonical names
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-      cityName
-    )}&types=(cities)&key=${config.googlePlaces.apiKey}`
-
-    try {
-      const response = await fetch(url)
-      const data = await response.json()
-
-      if (!data.predictions || data.predictions.length === 0) {
-        logger.debug('Google Places Autocomplete: No matching place found', { cityName })
-        // Cache the negative result
-        const result = { isValid: false, correctedName: null, reason: 'no_matching_place' }
-        cache.set(cacheKey, result, this.cacheTtl)
-        return result // No matching place
-      }
-
-      // Get the first prediction (most relevant)
-      const prediction = data.predictions[0]
-      
-      // Validate that this is actually a city by checking place types
-      const isValidCityType = prediction.types && (
-        prediction.types.includes("locality") ||
-        prediction.types.includes("administrative_area_level_1")
-      )
-      
-      if (!isValidCityType) {
-        logger.debug('Google Places Autocomplete: Place found but not a valid city type', { 
-          cityName,
-          placeTypes: prediction.types,
-          description: prediction.description
-        })
-        // Cache the negative result
-        const result = { isValid: false, correctedName: null, reason: 'invalid_city_type' }
-        cache.set(cacheKey, result, this.cacheTtl)
-        return result
-      }
-      
-      // Extract the canonical name from the description
-      // Format is usually "City Name, Country" or "City Name, State, Country"
-      const description = prediction.description
-      const correctedName = this.extractCityNameFromDescription(description)
-      
-      logger.debug('Google Places Autocomplete: Valid city confirmed', { 
-        originalName: cityName,
-        correctedName: correctedName,
-        fullDescription: description,
-        placeId: prediction.place_id,
-        types: prediction.types,
-        validTypes: prediction.types.filter(type => 
-          ["locality", "administrative_area_level_1"].includes(type)
-        )
-      })
-
-      // Cache the result with corrected name
-      const result = { isValid: true, correctedName: correctedName, reason: 'valid_city' }
-      cache.set(cacheKey, result, this.cacheTtl)
-      
-      return result
-    } catch (error) {
-      logger.error('Google Places Autocomplete API request failed', {
-        cityName,
-        error: error.message
-      })
-      throw error
-    }
+    // Google Places API is disabled, return basic validation
+    logger.debug('Google Places API disabled, using basic validation', { cityName })
+    return { isValid: true, correctedName: cityName }
   }
 
   /**
@@ -369,27 +280,8 @@ class CityValidator {
         stats.reasons.invalidAQI++
         stats.invalid++
       } else {
-                 // Final validation with Google Places API
-         try {
-           const validationResult = await this.validateWithGooglePlaces(cityName)
-           if (!validationResult.isValid) {
-             // Check if it's due to invalid city type or general validation failure
-             if (validationResult.reason === 'invalid_city_type') {
-               stats.reasons.invalidCityType++
-             } else {
-               stats.reasons.googlePlacesValidation++
-             }
-             stats.invalid++
-           } else {
-             stats.valid++
-           }
-         } catch (error) {
-           logger.warn('Google Places validation failed for stats, counting as valid', {
-             cityName,
-             error: error.message
-           })
-           stats.valid++
-         }
+                         // Google Places API is disabled, count as valid
+        stats.valid++
       }
     }
 
@@ -400,34 +292,22 @@ class CityValidator {
    * Get corrected city name from Google Places API
    * @param {string} cityName - Original city name
    * @returns {Promise<string>} Corrected city name or original if not found
+   * @deprecated Google Places API is disabled
    */
   async getCorrectedCityName(cityName) {
-    try {
-      const validationResult = await this.validateWithGooglePlaces(cityName)
-      return validationResult.correctedName || cityName
-    } catch (error) {
-      logger.warn('Failed to get corrected city name', {
-        cityName,
-        error: error.message
-      })
-      return cityName
-    }
+    // Google Places API is disabled, return original name
+    return cityName
   }
 
   /**
    * Clear Google Places validation cache
    */
+  /**
+   * Clear Google Places validation cache
+   * @deprecated Google Places API is disabled
+   */
   clearGooglePlacesCache() {
-    // Get all cache keys that start with our cache key prefix
-    const cacheKeys = cache.keys().filter(key => key.startsWith(this.cacheKey))
-    
-    cacheKeys.forEach(key => {
-      cache.delete(key)
-    })
-    
-    logger.info('Google Places validation cache cleared', {
-      clearedKeys: cacheKeys.length
-    })
+    logger.debug('Google Places API disabled, no cache to clear')
   }
 }
 
