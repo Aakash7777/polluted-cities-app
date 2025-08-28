@@ -239,12 +239,12 @@ async function startServer() {
         database: 'initialized'
       })
       
-      console.log(`🚀 Polluted Cities Backend Server running on port ${PORT}`)
-      console.log(`📊 Environment: ${config.server.nodeEnv}`)
-      console.log(`🔗 Health check: http://localhost:${PORT}/health`)
-      console.log(`📚 API docs: http://localhost:${PORT}/docs`)
-      console.log(`🌍 Cities endpoint: http://localhost:${PORT}/cities`)
-      console.log(`🗄️ Database: initialized`)
+             console.log(`🚀 Polluted Cities Backend Server running on port ${PORT}`)
+       console.log(`📊 Environment: ${config.server.nodeEnv}`)
+       console.log(`🔗 Health check: http://localhost:${PORT}/health`)
+       console.log(`📚 API docs: http://localhost:${PORT}/docs`)
+       console.log(`🌍 Cities endpoint: http://localhost:${PORT}/api/cities`)
+       console.log(`🗄️ Database: initialized`)
     })
   } catch (error) {
     logger.error('Failed to start server', { error: error.message })
